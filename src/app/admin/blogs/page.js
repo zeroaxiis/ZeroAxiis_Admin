@@ -16,6 +16,8 @@ export default function ManageBlogsPage() {
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewBlog, setPreviewBlog] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(initialForm);
@@ -47,7 +49,13 @@ export default function ManageBlogsPage() {
     setIsEditing(true);
     setEditingId(blog.id);
     setFormData({ title: blog.title, author: blog.author, content: blog.content, image: null });
+    setIsPreviewOpen(false);
     setIsModalOpen(true);
+  };
+
+  const openPreviewModal = (blog) => {
+    setPreviewBlog(blog);
+    setIsPreviewOpen(true);
   };
 
   const handleInputChange = (e) => {
@@ -93,6 +101,7 @@ export default function ManageBlogsPage() {
     try {
       await api.delete(`/blog/${id}`);
       showToast('Blog deleted successfully');
+      setIsPreviewOpen(false);
       fetchBlogs();
     } catch (err) {
       showToast(err.message || 'Delete failed', 'error');
@@ -101,21 +110,43 @@ export default function ManageBlogsPage() {
 
   const columns = [
     {
-      header: 'Image',
+      header: 'Cover',
       render: (row) =>
         row.image_url ? (
-          <img src={row.image_url} alt={row.title} className="thumbnail" />
+          <img
+            src={row.image_url}
+            alt={row.title}
+            style={{
+              width: 48,
+              height: 32,
+              borderRadius: 'var(--radius-sm)',
+              objectFit: 'cover',
+              border: '1px solid var(--border)',
+            }}
+          />
         ) : (
           <span className="text-muted">—</span>
         ),
     },
-    { header: 'Title', accessor: 'title' },
+    {
+      header: 'Title',
+      render: (row) => (
+        <span
+          onClick={() => openPreviewModal(row)}
+          style={{ cursor: 'pointer', fontWeight: 500 }}
+          className="hover:underline"
+        >
+          {row.title}
+        </span>
+      ),
+    },
     { header: 'Author', accessor: 'author' },
     {
       header: 'Actions',
       className: 'text-center',
       render: (row) => (
         <ActionButtons
+          onView={() => openPreviewModal(row)}
           onEdit={() => openEditModal(row)}
           onDelete={() => handleDelete(row.id)}
         />
@@ -136,6 +167,71 @@ export default function ManageBlogsPage() {
 
       <DataTable columns={columns} data={blogs} emptyMessage="No blogs found." />
 
+      {/* Preview Modal */}
+      {previewBlog && (
+        <Modal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          title="Blog Preview"
+        >
+          <div className="flex flex-col gap-4">
+            {previewBlog.image_url && (
+              <img
+                src={previewBlog.image_url}
+                alt={previewBlog.title}
+                style={{
+                  width: '100%',
+                  maxHeight: 240,
+                  borderRadius: 'var(--radius-md)',
+                  objectFit: 'cover',
+                  border: '1px solid var(--border)',
+                }}
+              />
+            )}
+            <div>
+              <h2 className="heading-md">{previewBlog.title}</h2>
+              <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                By {previewBlog.author}
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: '0.9rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.6,
+                maxHeight: 300,
+                overflowY: 'auto',
+                whiteSpace: 'pre-wrap',
+                background: 'var(--bg-primary)',
+                padding: '1rem',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              {previewBlog.content}
+            </div>
+
+            <div className="modal-footer" style={{ padding: '1rem 0 0 0', borderTop: 'none' }}>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => handleDelete(previewBlog.id)}
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => openEditModal(previewBlog)}
+              >
+                Edit Blog
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit / Create Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

@@ -17,6 +17,8 @@ export default function ManageProjectsPage() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewProject, setPreviewProject] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(initialForm);
@@ -54,7 +56,13 @@ export default function ManageProjectsPage() {
       project_url: project.project_url,
       image: null,
     });
+    setIsPreviewOpen(false);
     setIsModalOpen(true);
+  };
+
+  const openPreviewModal = (project) => {
+    setPreviewProject(project);
+    setIsPreviewOpen(true);
   };
 
   const handleInputChange = (e) => {
@@ -101,6 +109,7 @@ export default function ManageProjectsPage() {
     try {
       await api.delete(`/project/${id}`);
       showToast('Project deleted successfully');
+      setIsPreviewOpen(false);
       fetchProjects();
     } catch (err) {
       showToast(err.message || 'Delete failed', 'error');
@@ -112,12 +121,33 @@ export default function ManageProjectsPage() {
       header: 'Image',
       render: (row) =>
         row.image_url ? (
-          <img src={row.image_url} alt={row.title} className="thumbnail" />
+          <img
+            src={row.image_url}
+            alt={row.title}
+            style={{
+              width: 48,
+              height: 32,
+              borderRadius: 'var(--radius-sm)',
+              objectFit: 'cover',
+              border: '1px solid var(--border)',
+            }}
+          />
         ) : (
           <span className="text-muted">—</span>
         ),
     },
-    { header: 'Title', accessor: 'title' },
+    {
+      header: 'Title',
+      render: (row) => (
+        <span
+          onClick={() => openPreviewModal(row)}
+          style={{ cursor: 'pointer', fontWeight: 500 }}
+          className="hover:underline"
+        >
+          {row.title}
+        </span>
+      ),
+    },
     { header: 'Organization', accessor: 'organization' },
     {
       header: 'URL',
@@ -127,10 +157,10 @@ export default function ManageProjectsPage() {
             href={row.project_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2"
+            className="flex items-center gap-1.5"
             style={{ color: 'var(--accent)', fontSize: '0.85rem' }}
           >
-            <ExternalLink size={14} />
+            <ExternalLink size={13} />
             Visit
           </a>
         ) : (
@@ -142,6 +172,7 @@ export default function ManageProjectsPage() {
       className: 'text-center',
       render: (row) => (
         <ActionButtons
+          onView={() => openPreviewModal(row)}
           onEdit={() => openEditModal(row)}
           onDelete={() => handleDelete(row.id)}
         />
@@ -162,6 +193,89 @@ export default function ManageProjectsPage() {
 
       <DataTable columns={columns} data={projects} emptyMessage="No projects found." />
 
+      {/* Preview Modal */}
+      {previewProject && (
+        <Modal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          title="Project Preview"
+        >
+          <div className="flex flex-col gap-4">
+            {previewProject.image_url && (
+              <img
+                src={previewProject.image_url}
+                alt={previewProject.title}
+                style={{
+                  width: '100%',
+                  maxHeight: 240,
+                  borderRadius: 'var(--radius-md)',
+                  objectFit: 'cover',
+                  border: '1px solid var(--border)',
+                }}
+              />
+            )}
+            <div>
+              <h2 className="heading-md">{previewProject.title}</h2>
+              <span className="badge badge-muted">{previewProject.organization}</span>
+            </div>
+
+            {previewProject.project_url && (
+              <div>
+                <label className="form-label">Project URL</label>
+                <a
+                  href={previewProject.project_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5"
+                  style={{ color: 'var(--accent)', fontSize: '0.85rem' }}
+                >
+                  <ExternalLink size={14} />
+                  {previewProject.project_url}
+                </a>
+              </div>
+            )}
+
+            <div>
+              <label className="form-label">Description</label>
+              <div
+                style={{
+                  fontSize: '0.9rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.6,
+                  maxHeight: 250,
+                  overflowY: 'auto',
+                  whiteSpace: 'pre-wrap',
+                  background: 'var(--bg-primary)',
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                {previewProject.description}
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ padding: '1rem 0 0 0', borderTop: 'none' }}>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => handleDelete(previewProject.id)}
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => openEditModal(previewProject)}
+              >
+                Edit Project
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit / Create Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

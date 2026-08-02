@@ -1,18 +1,54 @@
 'use client';
 
-import { Edit, Trash2 } from 'lucide-react';
-
-export default function ActionButtons({ onEdit, onDelete }) {
+export default function ActionButtons({ onView, onEdit, onDelete }) {
   return (
-    <div className="flex gap-2 justify-center">
+    <div className="flex gap-3 justify-center">
+      {onView && (
+        <button
+          onClick={onView}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-primary)',
+            fontSize: '0.8rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+          className="hover:underline"
+        >
+          View
+        </button>
+      )}
       {onEdit && (
-        <button className="btn btn-icon btn-outline" onClick={onEdit} title="Edit">
-          <Edit size={15} />
+        <button
+          onClick={onEdit}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--accent)',
+            fontSize: '0.8rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+          className="hover:underline"
+        >
+          Edit
         </button>
       )}
       {onDelete && (
-        <button className="btn btn-icon btn-danger" onClick={onDelete} title="Delete">
-          <Trash2 size={15} />
+        <button
+          onClick={onDelete}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--danger)',
+            fontSize: '0.8rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+          className="hover:underline"
+        >
+          Delete
         </button>
       )}
     </div>

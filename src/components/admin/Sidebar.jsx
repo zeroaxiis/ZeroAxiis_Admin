@@ -51,7 +51,7 @@ export default function Sidebar() {
               href={item.href}
               className={`nav-link ${isActive ? 'active' : ''}`}
             >
-              <item.icon size={16} />
+              <item.icon size={15} style={{ opacity: isActive ? 1 : 0.7 }} />
               {item.label}
             </Link>
           );
@@ -60,12 +60,12 @@ export default function Sidebar() {
 
       <div className="sidebar-footer">
         <button
-          className="nav-link w-full"
+          className="nav-link w-full text-left flex items-center gap-2"
           onClick={logout}
-          style={{ border: 'none', background: 'none', cursor: 'pointer' }}
+          style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
         >
-          <LogOut size={16} />
-          Logout
+          <LogOut size={15} />
+          Sign out
         </button>
       </div>
     </aside>

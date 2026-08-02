@@ -1,7 +1,5 @@
 'use client';
 
-import { Plus } from 'lucide-react';
-
 export default function AdminPageHeader({ title, subtitle, actionLabel, onAction }) {
   return (
     <div className="flex justify-between items-center mb-8">
@@ -13,8 +11,7 @@ export default function AdminPageHeader({ title, subtitle, actionLabel, onAction
       </div>
       {actionLabel && onAction && (
         <button className="btn btn-primary" onClick={onAction}>
-          <Plus size={16} />
-          {actionLabel}
+          + {actionLabel}
         </button>
       )}
     </div>

@@ -16,6 +16,8 @@ export default function ManageTeamPage() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewMember, setPreviewMember] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(initialForm);
@@ -47,7 +49,13 @@ export default function ManageTeamPage() {
     setIsEditing(true);
     setEditingId(member.id);
     setFormData({ name: member.name, role: member.role, description: member.description, image: null });
+    setIsPreviewOpen(false);
     setIsModalOpen(true);
+  };
+
+  const openPreviewModal = (member) => {
+    setPreviewMember(member);
+    setIsPreviewOpen(true);
   };
 
   const handleInputChange = (e) => {
@@ -93,6 +101,7 @@ export default function ManageTeamPage() {
     try {
       await api.delete(`/team/${id}`);
       showToast('Team member deleted successfully');
+      setIsPreviewOpen(false);
       fetchTeam();
     } catch (err) {
       showToast(err.message || 'Delete failed', 'error');
@@ -103,9 +112,25 @@ export default function ManageTeamPage() {
     {
       header: 'Member',
       render: (row) => (
-        <div className="flex items-center gap-4">
-          <img src={row.image_url} alt={row.name} className="avatar" />
-          <span>{row.name}</span>
+        <div className="flex items-center gap-3" onClick={() => openPreviewModal(row)} style={{ cursor: 'pointer' }}>
+          <img
+            src={row.image_url}
+            alt={row.name}
+            style={{
+              width: 38,
+              height: 38,
+              minWidth: 38,
+              minHeight: 38,
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '1px solid var(--border)',
+            }}
+          />
+          <div className="flex flex-col">
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }} className="hover:underline">
+              {row.name}
+            </span>
+          </div>
         </div>
       ),
     },
@@ -115,6 +140,7 @@ export default function ManageTeamPage() {
       className: 'text-center',
       render: (row) => (
         <ActionButtons
+          onView={() => openPreviewModal(row)}
           onEdit={() => openEditModal(row)}
           onDelete={() => handleDelete(row.id)}
         />
@@ -135,6 +161,73 @@ export default function ManageTeamPage() {
 
       <DataTable columns={columns} data={members} emptyMessage="No team members found." />
 
+      {/* Preview Modal */}
+      {previewMember && (
+        <Modal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          title="Team Member Details"
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <img
+                src={previewMember.image_url}
+                alt={previewMember.name}
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '1px solid var(--border)',
+                }}
+              />
+              <div>
+                <h2 className="heading-md">{previewMember.name}</h2>
+                <span className="badge badge-muted">{previewMember.role}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="form-label">Full Bio / Description</label>
+              <div
+                style={{
+                  fontSize: '0.9rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.6,
+                  maxHeight: 250,
+                  overflowY: 'auto',
+                  whiteSpace: 'pre-wrap',
+                  background: 'var(--bg-primary)',
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                {previewMember.description}
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ padding: '1rem 0 0 0', borderTop: 'none' }}>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => handleDelete(previewMember.id)}
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => openEditModal(previewMember)}
+              >
+                Edit Member
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit / Create Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
