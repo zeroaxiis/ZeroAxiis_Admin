@@ -3,14 +3,13 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
 
 export const metadata = {
-  title: 'ZeroAxiis — Empowering the Future',
-  description:
-    'ZeroAxiis provides innovative solutions for your business needs. Experience the next generation of web technologies.',
+  title: 'ZeroAxiis — Admin CMS',
+  description: 'Internal Content Management System for ZeroAxiis.',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
