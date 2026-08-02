@@ -72,19 +72,18 @@ export default function ManageTestimonialsPage() {
     e.preventDefault();
     setSubmitting(true);
 
-    const payload = {
-      name: formData.name,
-      role: formData.role,
-      company: formData.company,
-      comment: formData.comment,
-    };
+    const data = new FormData();
+    data.append('name', formData.name);
+    data.append('role', formData.role);
+    data.append('company', formData.company);
+    data.append('comment', formData.comment);
 
     try {
       if (isEditing) {
-        await api.patch(`/testimonial/${editingId}`, payload);
+        await api.patchForm(`/testimonial/${editingId}`, data);
         showToast('Testimonial updated successfully');
       } else {
-        await api.post('/testimonial', payload);
+        await api.postForm('/testimonial', data);
         showToast('Testimonial created successfully');
       }
       setIsModalOpen(false);
@@ -245,6 +244,7 @@ export default function ManageTestimonialsPage() {
               className="form-input"
               value={formData.company}
               onChange={handleInputChange}
+              required
               placeholder="e.g. Acme Corp"
             />
           </div>
