@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import Logo from '@/components/ui/Logo';
 import {
   LayoutDashboard,
   FileText,
@@ -29,12 +30,10 @@ export default function Sidebar() {
   return (
     <aside className="admin-sidebar">
       <div className="sidebar-logo">
-        <Link href="/admin">
-          <h1 className="heading-md" style={{ color: 'var(--accent)' }}>
+        <Link href="/admin" className="flex items-center gap-2.5">
+          <Logo size={24} />
+          <span style={{ fontSize: '0.9rem', fontWeight: 600, letterSpacing: '-0.02em' }}>
             ZeroAxiis
-          </h1>
-          <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-            Admin Panel
           </span>
         </Link>
       </div>
@@ -52,7 +51,7 @@ export default function Sidebar() {
               href={item.href}
               className={`nav-link ${isActive ? 'active' : ''}`}
             >
-              <item.icon size={18} />
+              <item.icon size={16} />
               {item.label}
             </Link>
           );
@@ -60,8 +59,12 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <button className="nav-link w-full" onClick={logout} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-          <LogOut size={18} />
+        <button
+          className="nav-link w-full"
+          onClick={logout}
+          style={{ border: 'none', background: 'none', cursor: 'pointer' }}
+        >
+          <LogOut size={16} />
           Logout
         </button>
       </div>
