@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-import { LogIn } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
@@ -15,30 +15,36 @@ export default function LoginPage() {
     e.preventDefault();
     const result = await login(email, password);
     if (!result.success) {
-      showToast(result.message || 'Invalid email or password', 'error');
+      showToast(result.message || 'Invalid credentials', 'error');
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card animate-slide-up">
-        <div className="text-center mb-8">
-          <h1
-            className="heading-lg"
-            style={{ color: 'var(--accent)', marginBottom: '0.5rem' }}
-          >
+    <div className="login-screen">
+      <div className="login-top-nav">
+        <div className="flex items-center gap-2.5">
+          <Logo size={24} />
+          <span style={{ fontSize: '0.9rem', fontWeight: 600, letterSpacing: '-0.02em' }}>
             ZeroAxiis
-          </h1>
-          <p className="text-muted">Sign in to the admin panel</p>
+          </span>
+        </div>
+      </div>
+
+      <div className="login-box">
+        <div className="login-box-header">
+          <h1 className="login-box-title">Sign in</h1>
+          <p className="login-box-desc">
+            Enter your credentials to access the admin panel.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label">Email address</label>
             <input
               type="email"
               className="form-input"
-              placeholder="admin@zeroaxiis.tech"
+              placeholder="name@zeroaxiis.tech"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -58,14 +64,8 @@ export default function LoginPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary w-full mt-4"
-            disabled={loading}
-            style={{ padding: '0.85rem' }}
-          >
-            <LogIn size={18} />
-            {loading ? 'Signing in...' : 'Sign In'}
+          <button type="submit" className="login-btn-submit" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
       </div>

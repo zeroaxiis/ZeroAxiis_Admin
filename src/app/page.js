@@ -1,11 +1,5 @@
-import Header from '@/components/public/Header';
-import Hero from '@/components/public/Hero';
+import { redirect } from 'next/navigation';
 
-export default function HomePage() {
-  return (
-    <div>
-      <Header />
-      <Hero />
-    </div>
-  );
+export default function RootPage() {
+  redirect('/admin/login');
 }
