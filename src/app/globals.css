@@ -568,7 +568,7 @@ textarea.form-input {
 .admin-main {
   flex: 1;
   margin-left: 240px;
-  padding: 1.5rem 2.5rem 3rem 2.5rem;
+  padding: 1.25rem 2.5rem 2.5rem 2.5rem;
   min-height: 100vh;
 }
 
@@ -576,9 +576,7 @@ textarea.form-input {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding-bottom: 1.25rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 0.75rem;
 }
 
 /* Login Page */

@@ -20,14 +20,19 @@ export default function AdminLayout({ children }) {
       <div className="admin-layout">
         <Sidebar />
         <main className="admin-main animate-fade-in">
-          {/* Top Right Logout Button */}
+          {/* Dedicated Top Navbar Header */}
           <div className="admin-top-header">
             <button
               onClick={logout}
-              className="btn btn-outline btn-sm flex items-center gap-2"
-              style={{ color: 'var(--text-secondary)' }}
+              className="btn btn-outline flex items-center gap-2"
+              style={{
+                color: 'var(--text-secondary)',
+                padding: '0.4rem 0.9rem',
+                fontSize: '0.825rem',
+                fontWeight: 500,
+              }}
             >
-              <LogOut size={14} />
+              <LogOut size={15} />
               <span>Logout</span>
             </button>
           </div>

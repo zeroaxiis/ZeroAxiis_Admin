@@ -16,6 +16,10 @@ import {
   RefreshCw,
   Plus,
   PieChart,
+  Activity,
+  Server,
+  Database,
+  Zap,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -124,7 +128,7 @@ export default function DashboardPage() {
     loadAllData();
   }, [fetchHealthStatus]);
 
-  if (loading) return <LoadingSpinner size={28} />;
+  if (loading) return <LoadingSpinner size={32} />;
 
   const stats = [
     {
@@ -157,54 +161,118 @@ export default function DashboardPage() {
     },
   ];
 
-  const totalItems =
-    data.blogs.length +
-    data.team.length +
-    data.projects.length +
-    data.creatives.length +
-    data.testimonials.length;
-
-  const contentDistribution = [
-    { label: 'Team Members', count: data.team.length, href: '/admin/team', icon: Users, color: '#38bdf8' },
-    { label: 'Testimonials', count: data.testimonials.length, href: '/admin/testimonials', icon: MessageSquareQuote, color: '#a855f7' },
-    { label: 'Creatives', count: data.creatives.length, href: '/admin/creatives', icon: Video, color: '#f43f5e' },
-    { label: 'Blogs', count: data.blogs.length, href: '/admin/blogs', icon: FileText, color: '#22c55e' },
-    { label: 'Projects', count: data.projects.length, href: '/admin/projects', icon: FolderKanban, color: '#eab308' },
+  const allSections = [
+    { key: 'team', label: 'team', count: data.team.length, href: '/admin/team', color: '#38bdf8' },
+    { key: 'creatives', label: 'creative', count: data.creatives.length, href: '/admin/creatives', color: '#f43f5e' },
+    { key: 'testimonials', label: 'testimonials', count: data.testimonials.length, href: '/admin/testimonials', color: '#a855f7' },
+    { key: 'blogs', label: 'blogs', count: data.blogs.length, href: '/admin/blogs', color: '#22c55e' },
+    { key: 'projects', label: 'projects', count: data.projects.length, href: '/admin/projects', color: '#eab308' },
   ];
 
+  const totalItems = allSections.reduce((acc, s) => acc + s.count, 0);
+  const activeSections = allSections.filter((s) => s.count > 0);
+
+  // Spacious SVG Donut Geometry Calculations
+  const cx = 250;
+  const cy = 135;
+  const rOuter = 72;
+  const rInner = 44;
+  let currentAngle = -Math.PI / 2;
+
+  const slices = activeSections.map((sec) => {
+    const fraction = sec.count / totalItems;
+    const angleLength = fraction * 2 * Math.PI;
+    const startAngle = currentAngle;
+    const endAngle = currentAngle + angleLength;
+    currentAngle = endAngle;
+
+    const midAngle = (startAngle + endAngle) / 2;
+
+    const x1Outer = cx + rOuter * Math.cos(startAngle);
+    const y1Outer = cy + rOuter * Math.sin(startAngle);
+    const x2Outer = cx + rOuter * Math.cos(endAngle);
+    const y2Outer = cy + rOuter * Math.sin(endAngle);
+
+    const x1Inner = cx + rInner * Math.cos(endAngle);
+    const y1Inner = cy + rInner * Math.sin(endAngle);
+    const x2Inner = cx + rInner * Math.cos(startAngle);
+    const y2Inner = cy + rInner * Math.sin(startAngle);
+
+    const largeArcFlag = angleLength > Math.PI ? 1 : 0;
+
+    let pathData;
+    if (activeSections.length === 1) {
+      pathData = [
+        `M ${cx} ${cy - rOuter}`,
+        `A ${rOuter} ${rOuter} 0 1 1 ${cx - 0.01} ${cy - rOuter}`,
+        `Z`,
+        `M ${cx} ${cy - rInner}`,
+        `A ${rInner} ${rInner} 0 1 0 ${cx - 0.01} ${cy - rInner}`,
+        `Z`,
+      ].join(' ');
+    } else {
+      pathData = [
+        `M ${x1Outer} ${y1Outer}`,
+        `A ${rOuter} ${rOuter} 0 ${largeArcFlag} 1 ${x2Outer} ${y2Outer}`,
+        `L ${x1Inner} ${y1Inner}`,
+        `A ${rInner} ${rInner} 0 ${largeArcFlag} 0 ${x2Inner} ${y2Inner}`,
+        'Z',
+      ].join(' ');
+    }
+
+    const p1X = cx + (rOuter + 3) * Math.cos(midAngle);
+    const p1Y = cy + (rOuter + 3) * Math.sin(midAngle);
+
+    const isRightSide = Math.cos(midAngle) >= 0;
+    const armLen = 42;
+    const p2X = cx + (rOuter + armLen) * Math.cos(midAngle);
+    const p2Y = cy + (rOuter + armLen) * Math.sin(midAngle);
+
+    const p3X = isRightSide ? p2X + 26 : p2X - 26;
+    const p3Y = p2Y;
+
+    return {
+      ...sec,
+      pathData,
+      pointer: { p1X, p1Y, p2X, p2Y, p3X, p3Y, isRightSide },
+    };
+  });
+
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in pb-8">
       {/* Header Banner */}
-      <div className="mb-8">
-        <h1 className="heading-lg" style={{ marginBottom: '0.2rem' }}>
+      <div className="mb-6">
+        <h1 className="heading-lg" style={{ marginBottom: '0.2rem', fontSize: '1.75rem' }}>
           Dashboard Overview
         </h1>
         <p className="text-secondary" style={{ fontSize: '0.875rem' }}>
-          Welcome back. Manage and monitor all your ZeroAxiis content assets.
+          Manage and monitor all your ZeroAxiis content assets and infrastructure.
         </p>
       </div>
 
       {/* Top 4 Metrics Grid */}
-      <div className="grid-4 mb-8">
+      <div className="grid-4 mb-6" style={{ gap: '1rem' }}>
         {stats.map((stat) => (
           <Link
             key={stat.title}
             href={stat.href}
             className="stat-card block group"
-            style={{ textDecoration: 'none' }}
+            style={{ textDecoration: 'none', padding: '1.2rem 1.25rem' }}
           >
-            <div className="flex justify-between items-center mb-3">
-              <span className="stat-label">{stat.title}</span>
+            <div className="flex justify-between items-center mb-2">
+              <span className="stat-label" style={{ fontSize: '0.8rem' }}>{stat.title}</span>
               <ArrowUpRight
-                size={14}
+                size={15}
                 style={{ color: 'var(--text-muted)' }}
               />
             </div>
 
-            <div className="stat-value mb-3">{stat.count}</div>
+            <div className="stat-value mb-3" style={{ fontSize: '1.75rem', fontWeight: 700 }}>
+              {stat.count}
+            </div>
 
-            {/* Media Image Stack Preview */}
-            <div className="flex items-center gap-1.5" style={{ height: 28 }}>
+            {/* Media Preview Stack */}
+            <div className="flex items-center gap-1.5" style={{ height: 24 }}>
               {stat.avatars && stat.avatars.length > 0 ? (
                 <div className="flex" style={{ marginLeft: -4 }}>
                   {stat.avatars.map((url, i) => (
@@ -250,131 +318,280 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Infrastructure Status & Content Distribution Hub */}
+      {/* Main Grid: Spacious Content Distribution SVG & Infrastructure Status */}
       <div className="grid-2 gap-6">
-        {/* Content Asset Distribution & Quick Action Hub */}
-        <div className="glass-panel p-6">
-          <div className="flex justify-between items-center mb-4">
+        {/* Dynamic SVG Donut Chart Box */}
+        <div className="glass-panel p-6 flex flex-col justify-between" style={{ minHeight: 380 }}>
+          <div className="flex justify-between items-center mb-2">
             <div className="flex items-center gap-2">
-              <PieChart size={16} style={{ color: 'var(--accent)' }} />
-              <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>Content Distribution</h2>
+              <PieChart size={17} style={{ color: 'var(--accent)' }} />
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 600 }}>Content Distribution</h2>
             </div>
-            <span className="badge badge-muted">{totalItems} Total Assets</span>
+            <span className="badge badge-accent" style={{ fontSize: '0.8rem' }}>
+              {totalItems} Total Assets
+            </span>
           </div>
 
-          <div className="flex flex-col gap-3.5 mb-6">
-            {contentDistribution.map((item) => {
-              const pct = totalItems > 0 ? Math.round((item.count / totalItems) * 100) : 0;
-              return (
-                <div key={item.label} className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center" style={{ fontSize: '0.85rem' }}>
-                    <div className="flex items-center gap-2">
-                      <item.icon size={14} style={{ color: item.color }} />
-                      <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.label}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted" style={{ fontSize: '0.8rem' }}>{item.count} items ({pct}%)</span>
-                      <Link href={item.href} className="text-muted hover:underline" style={{ fontSize: '0.78rem' }}>
-                        Manage →
-                      </Link>
-                    </div>
-                  </div>
+          {/* SVG Canvas */}
+          <div className="relative flex items-center justify-center my-2" style={{ minHeight: 260 }}>
+            <svg width="500" height="260" viewBox="0 0 500 260" style={{ overflow: 'visible' }}>
+              <defs>
+                {allSections.map((s) => (
+                  <marker
+                    key={s.key}
+                    id={`arrow-${s.key}`}
+                    viewBox="0 0 10 10"
+                    refX="7"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill={s.color} />
+                  </marker>
+                ))}
+              </defs>
 
-                  {/* Progress Bar */}
-                  <div style={{ height: 6, background: 'var(--bg-primary)', borderRadius: 3, overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${Math.max(pct, item.count > 0 ? 5 : 0)}%`,
-                        background: item.color,
-                        borderRadius: 3,
-                        transition: 'width 0.5s ease',
-                      }}
+              {/* Donut Slices */}
+              {slices.length > 0 ? (
+                slices.map((slice) => (
+                  <path
+                    key={slice.key}
+                    d={slice.pathData}
+                    fill={slice.color}
+                    stroke="var(--bg-surface)"
+                    strokeWidth="3"
+                    style={{ transition: 'all 0.4s ease', cursor: 'pointer' }}
+                    onClick={() => window.location.href = slice.href}
+                  />
+                ))
+              ) : (
+                <circle cx={cx} cy={cy} r={(rOuter + rInner) / 2} fill="none" stroke="var(--border-subtle)" strokeWidth={rOuter - rInner} />
+              )}
+
+              {/* Center Circle Label */}
+              <circle cx={cx} cy={cy} r={rInner - 2} fill="var(--bg-surface)" stroke="var(--border)" strokeWidth="1.5" />
+              <text x={cx} y={cy - 4} textAnchor="middle" fill="var(--text-primary)" fontSize="21" fontWeight="800">
+                {totalItems}
+              </text>
+              <text x={cx} y={cy + 15} textAnchor="middle" fill="var(--text-muted)" fontSize="11" fontWeight="500">
+                Assets
+              </text>
+
+              {/* Midpoint Pointer Lines */}
+              {slices.map((slice) => {
+                const { p1X, p1Y, p2X, p2Y, p3X, p3Y, isRightSide } = slice.pointer;
+                const points = `${p1X},${p1Y} ${p2X},${p2Y} ${p3X},${p3Y}`;
+                const textAnchor = isRightSide ? 'start' : 'end';
+                const textX = isRightSide ? p3X + 8 : p3X - 8;
+
+                return (
+                  <g key={`pointer-${slice.key}`}>
+                    <polyline
+                      points={points}
+                      fill="none"
+                      stroke={slice.color}
+                      strokeWidth="1.75"
+                      strokeDasharray="4 2"
+                      markerEnd={`url(#arrow-${slice.key})`}
                     />
-                  </div>
-                </div>
-              );
-            })}
+                    <g onClick={() => window.location.href = slice.href} style={{ cursor: 'pointer' }}>
+                      <text
+                        x={textX}
+                        y={p3Y + 4}
+                        textAnchor={textAnchor}
+                        fill={slice.color}
+                        fontSize="13"
+                        fontWeight="700"
+                      >
+                        {slice.label} ({slice.count})
+                      </text>
+                    </g>
+                  </g>
+                );
+              })}
+            </svg>
           </div>
 
           {/* Quick Creation Shortcut Row */}
-          <div className="pt-4 flex flex-wrap gap-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="pt-3 flex flex-wrap justify-center gap-2" style={{ borderTop: '1px solid var(--border)' }}>
             <Link href="/admin/blogs" className="btn btn-outline btn-sm flex items-center gap-1">
-              <Plus size={13} /> Add Blog
+              <Plus size={12} /> Blog
             </Link>
             <Link href="/admin/team" className="btn btn-outline btn-sm flex items-center gap-1">
-              <Plus size={13} /> Add Member
+              <Plus size={12} /> Member
             </Link>
             <Link href="/admin/projects" className="btn btn-outline btn-sm flex items-center gap-1">
-              <Plus size={13} /> Add Project
+              <Plus size={12} /> Project
             </Link>
             <Link href="/admin/creatives" className="btn btn-outline btn-sm flex items-center gap-1">
-              <Plus size={13} /> Add Creative
+              <Plus size={12} /> Creative
             </Link>
             <Link href="/admin/testimonials" className="btn btn-outline btn-sm flex items-center gap-1">
-              <Plus size={13} /> Add Testimonial
+              <Plus size={12} /> Testimonial
             </Link>
           </div>
         </div>
 
-        {/* Infrastructure Status Card with Cached Timestamp & 2-Min Refresh Cooldown */}
-        <div className="glass-panel p-6">
-          <div className="flex justify-between items-center mb-2">
-            <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>
-              Infrastructure Status
-            </h2>
-          </div>
+        {/* Spacious Infrastructure Status Card */}
+        <div className="glass-panel p-6 flex flex-col justify-between" style={{ minHeight: 380 }}>
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <div className="flex items-center gap-2">
+                <Activity size={17} style={{ color: 'var(--accent)' }} />
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 600 }}>Infrastructure Status</h2>
+              </div>
 
-          {/* Last Checked Timestamp & 2-Min Cooldown Button */}
-          <div className="flex justify-between items-center mb-6" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            <span>
+              <button
+                onClick={() => fetchHealthStatus(true)}
+                disabled={cooldownRemaining > 0 || healthLoading}
+                className="btn btn-outline btn-sm flex items-center gap-1.5"
+                style={{ padding: '0.3rem 0.7rem', fontSize: '0.78rem' }}
+                title="Ping backend health endpoint"
+              >
+                <RefreshCw size={12} className={healthLoading ? 'animate-spin' : ''} />
+                {cooldownRemaining > 0 ? `${cooldownRemaining}s` : 'Re-check'}
+              </button>
+            </div>
+
+            <p className="text-secondary mb-5" style={{ fontSize: '0.8rem' }}>
               Last checked:{' '}
-              {lastChecked ? lastChecked.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A'}
-            </span>
-            <button
-              onClick={() => fetchHealthStatus(true)}
-              disabled={cooldownRemaining > 0 || healthLoading}
-              className="btn btn-outline btn-sm flex items-center gap-1.5"
-              style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
-              title="Ping backend health endpoint"
-            >
-              <RefreshCw size={11} className={healthLoading ? 'animate-spin' : ''} />
-              {cooldownRemaining > 0 ? `Cooldown (${cooldownRemaining}s)` : 'Re-check'}
-            </button>
-          </div>
+              <strong style={{ color: 'var(--text-primary)' }}>
+                {lastChecked ? lastChecked.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A'}
+              </strong>
+            </p>
 
-          <div className="flex flex-col gap-3" style={{ fontSize: '0.875rem' }}>
-            <div className="flex justify-between items-center p-3 rounded" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-              <span className="text-muted">API Gateway</span>
-              <span className="flex items-center gap-1.5 text-success">
-                <CheckCircle2 size={14} /> Active
-              </span>
-            </div>
+            {/* 3 Status Cards */}
+            <div className="flex flex-col gap-3.5">
+              {/* API Gateway Card */}
+              <div
+                className="p-4 rounded-lg flex items-center justify-between"
+                style={{
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(56, 189, 248, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid rgba(56, 189, 248, 0.2)',
+                    }}
+                  >
+                    <Server size={18} style={{ color: '#38bdf8' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                      API Gateway
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      ZeroAxiis Microservices API
+                    </div>
+                  </div>
+                </div>
 
-            <div className="flex justify-between items-center p-3 rounded" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-              <span className="text-muted">MongoDB Store</span>
-              {health?.services?.mongodb !== false ? (
-                <span className="flex items-center gap-1.5 text-success">
-                  <CheckCircle2 size={14} /> Healthy
+                <span className="badge badge-success flex items-center gap-1.5">
+                  <CheckCircle2 size={12} /> Active
                 </span>
-              ) : (
-                <span className="flex items-center gap-1.5" style={{ color: 'var(--danger)' }}>
-                  <XCircle size={14} /> Offline
-                </span>
-              )}
-            </div>
+              </div>
 
-            <div className="flex justify-between items-center p-3 rounded" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-              <span className="text-muted">Redis Cache</span>
-              {health?.services?.redis !== false ? (
-                <span className="flex items-center gap-1.5 text-success">
-                  <CheckCircle2 size={14} /> Healthy
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5" style={{ color: 'var(--danger)' }}>
-                  <XCircle size={14} /> Offline
-                </span>
-              )}
+              {/* MongoDB Store Card */}
+              <div
+                className="p-4 rounded-lg flex items-center justify-between"
+                style={{
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(34, 197, 94, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid rgba(34, 197, 94, 0.2)',
+                    }}
+                  >
+                    <Database size={18} style={{ color: '#22c55e' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                      MongoDB Store
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Primary Document Database
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  {health?.services?.mongodb !== false ? (
+                    <span className="badge badge-success flex items-center gap-1.5">
+                      <CheckCircle2 size={12} /> Healthy
+                    </span>
+                  ) : (
+                    <span className="badge badge-danger flex items-center gap-1.5">
+                      <XCircle size={12} /> Offline
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Redis Cache Card */}
+              <div
+                className="p-4 rounded-lg flex items-center justify-between"
+                style={{
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(168, 85, 247, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid rgba(168, 85, 247, 0.2)',
+                    }}
+                  >
+                    <Zap size={18} style={{ color: '#a855f7' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                      Redis Cache
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      In-Memory Session & Data Cache
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  {health?.services?.redis !== false ? (
+                    <span className="badge badge-success flex items-center gap-1.5">
+                      <CheckCircle2 size={12} /> Healthy
+                    </span>
+                  ) : (
+                    <span className="badge badge-danger flex items-center gap-1.5">
+                      <XCircle size={12} /> Offline
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
