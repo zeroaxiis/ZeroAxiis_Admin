@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   XCircle,
   RefreshCw,
+  Plus,
+  PieChart,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -155,6 +157,21 @@ export default function DashboardPage() {
     },
   ];
 
+  const totalItems =
+    data.blogs.length +
+    data.team.length +
+    data.projects.length +
+    data.creatives.length +
+    data.testimonials.length;
+
+  const contentDistribution = [
+    { label: 'Team Members', count: data.team.length, href: '/admin/team', icon: Users, color: '#38bdf8' },
+    { label: 'Testimonials', count: data.testimonials.length, href: '/admin/testimonials', icon: MessageSquareQuote, color: '#a855f7' },
+    { label: 'Creatives', count: data.creatives.length, href: '/admin/creatives', icon: Video, color: '#f43f5e' },
+    { label: 'Blogs', count: data.blogs.length, href: '/admin/blogs', icon: FileText, color: '#22c55e' },
+    { label: 'Projects', count: data.projects.length, href: '/admin/projects', icon: FolderKanban, color: '#eab308' },
+  ];
+
   return (
     <div className="animate-fade-in">
       {/* Header Banner */}
@@ -233,72 +250,69 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Infrastructure Status & Quick Access Grid */}
+      {/* Infrastructure Status & Content Distribution Hub */}
       <div className="grid-2 gap-6">
-        {/* Quick Management Shortcuts */}
+        {/* Content Asset Distribution & Quick Action Hub */}
         <div className="glass-panel p-6">
-          <h2 className="mb-4" style={{ fontSize: '1rem', fontWeight: 600 }}>
-            Quick Content Sections
-          </h2>
-          <div className="flex flex-col gap-2.5">
-            <Link
-              href="/admin/blogs"
-              className="flex justify-between items-center p-3 rounded"
-              style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-primary)' }}
-            >
-              <div className="flex items-center gap-3">
-                <FileText size={16} style={{ color: 'var(--text-secondary)' }} />
-                <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Blogs</span>
-              </div>
-              <span className="badge badge-muted">{data.blogs.length} items</span>
-            </Link>
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <PieChart size={16} style={{ color: 'var(--accent)' }} />
+              <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>Content Distribution</h2>
+            </div>
+            <span className="badge badge-muted">{totalItems} Total Assets</span>
+          </div>
 
-            <Link
-              href="/admin/team"
-              className="flex justify-between items-center p-3 rounded"
-              style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-primary)' }}
-            >
-              <div className="flex items-center gap-3">
-                <Users size={16} style={{ color: 'var(--text-secondary)' }} />
-                <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Team Members</span>
-              </div>
-              <span className="badge badge-muted">{data.team.length} items</span>
-            </Link>
+          <div className="flex flex-col gap-3.5 mb-6">
+            {contentDistribution.map((item) => {
+              const pct = totalItems > 0 ? Math.round((item.count / totalItems) * 100) : 0;
+              return (
+                <div key={item.label} className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center" style={{ fontSize: '0.85rem' }}>
+                    <div className="flex items-center gap-2">
+                      <item.icon size={14} style={{ color: item.color }} />
+                      <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted" style={{ fontSize: '0.8rem' }}>{item.count} items ({pct}%)</span>
+                      <Link href={item.href} className="text-muted hover:underline" style={{ fontSize: '0.78rem' }}>
+                        Manage →
+                      </Link>
+                    </div>
+                  </div>
 
-            <Link
-              href="/admin/projects"
-              className="flex justify-between items-center p-3 rounded"
-              style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-primary)' }}
-            >
-              <div className="flex items-center gap-3">
-                <FolderKanban size={16} style={{ color: 'var(--text-secondary)' }} />
-                <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Projects</span>
-              </div>
-              <span className="badge badge-muted">{data.projects.length} items</span>
-            </Link>
+                  {/* Progress Bar */}
+                  <div style={{ height: 6, background: 'var(--bg-primary)', borderRadius: 3, overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${Math.max(pct, item.count > 0 ? 5 : 0)}%`,
+                        background: item.color,
+                        borderRadius: 3,
+                        transition: 'width 0.5s ease',
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-            <Link
-              href="/admin/creatives"
-              className="flex justify-between items-center p-3 rounded"
-              style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-primary)' }}
-            >
-              <div className="flex items-center gap-3">
-                <Video size={16} style={{ color: 'var(--text-secondary)' }} />
-                <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Creatives</span>
-              </div>
-              <span className="badge badge-muted">{data.creatives.length} items</span>
+          {/* Quick Creation Shortcut Row */}
+          <div className="pt-4 flex flex-wrap gap-2" style={{ borderTop: '1px solid var(--border)' }}>
+            <Link href="/admin/blogs" className="btn btn-outline btn-sm flex items-center gap-1">
+              <Plus size={13} /> Add Blog
             </Link>
-
-            <Link
-              href="/admin/testimonials"
-              className="flex justify-between items-center p-3 rounded"
-              style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-primary)' }}
-            >
-              <div className="flex items-center gap-3">
-                <MessageSquareQuote size={16} style={{ color: 'var(--text-secondary)' }} />
-                <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Testimonials</span>
-              </div>
-              <span className="badge badge-muted">{data.testimonials.length} items</span>
+            <Link href="/admin/team" className="btn btn-outline btn-sm flex items-center gap-1">
+              <Plus size={13} /> Add Member
+            </Link>
+            <Link href="/admin/projects" className="btn btn-outline btn-sm flex items-center gap-1">
+              <Plus size={13} /> Add Project
+            </Link>
+            <Link href="/admin/creatives" className="btn btn-outline btn-sm flex items-center gap-1">
+              <Plus size={13} /> Add Creative
+            </Link>
+            <Link href="/admin/testimonials" className="btn btn-outline btn-sm flex items-center gap-1">
+              <Plus size={13} /> Add Testimonial
             </Link>
           </div>
         </div>
@@ -309,14 +323,6 @@ export default function DashboardPage() {
             <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>
               Infrastructure Status
             </h2>
-            <span
-              className="badge badge-muted"
-              style={{
-                color: health?.status === 'healthy' ? 'var(--success)' : 'var(--danger)',
-              }}
-            >
-              {health?.status === 'healthy' ? '● Operational' : '● Degraded'}
-            </span>
           </div>
 
           {/* Last Checked Timestamp & 2-Min Cooldown Button */}

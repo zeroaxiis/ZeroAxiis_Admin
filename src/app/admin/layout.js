@@ -20,7 +20,7 @@ export default function AdminLayout({ children }) {
       <div className="admin-layout">
         <Sidebar />
         <main className="admin-main animate-fade-in">
-          {/* Top Right Logout Bar */}
+          {/* Top Right Logout Button */}
           <div className="admin-top-header">
             <button
               onClick={logout}

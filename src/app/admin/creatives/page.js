@@ -6,9 +6,10 @@ import { useToast } from '@/context/ToastContext';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import DataTable from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
+import DetailDrawer from '@/components/ui/DetailDrawer';
 import ActionButtons from '@/components/ui/ActionButtons';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Video } from 'lucide-react';
 
 const initialForm = { video_url: '', summary: '', category: '', featured: false };
 
@@ -16,8 +17,9 @@ export default function ManageCreativesPage() {
   const { showToast } = useToast();
   const [creatives, setCreatives] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Modals & Drawers
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewCreative, setPreviewCreative] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -55,13 +57,8 @@ export default function ManageCreativesPage() {
       category: creative.category || '',
       featured: !!creative.featured,
     });
-    setIsPreviewOpen(false);
+    setPreviewCreative(null);
     setIsModalOpen(true);
-  };
-
-  const openPreviewModal = (creative) => {
-    setPreviewCreative(creative);
-    setIsPreviewOpen(true);
   };
 
   const handleInputChange = (e) => {
@@ -105,7 +102,7 @@ export default function ManageCreativesPage() {
     try {
       await api.delete(`/creative/${id}`);
       showToast('Creative deleted successfully');
-      setIsPreviewOpen(false);
+      setPreviewCreative(null);
       fetchCreatives();
     } catch (err) {
       showToast(err.message || 'Delete failed', 'error');
@@ -136,7 +133,7 @@ export default function ManageCreativesPage() {
       header: 'Title',
       render: (row) => (
         <span
-          onClick={() => openPreviewModal(row)}
+          onClick={() => setPreviewCreative(row)}
           style={{ cursor: 'pointer', fontWeight: 500 }}
           className="hover:underline"
         >
@@ -160,7 +157,7 @@ export default function ManageCreativesPage() {
       className: 'text-center',
       render: (row) => (
         <ActionButtons
-          onView={() => openPreviewModal(row)}
+          onView={() => setPreviewCreative(row)}
           onEdit={() => openEditModal(row)}
           onDelete={() => handleDelete(row.id)}
         />
@@ -181,49 +178,56 @@ export default function ManageCreativesPage() {
 
       <DataTable columns={columns} data={creatives} emptyMessage="No creatives found." />
 
-      {/* Full Preview Modal */}
-      {previewCreative && (
-        <Modal
-          isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
-          title="Creative Details & Preview"
-        >
-          <div className="flex flex-col gap-4">
+      {/* Zero-API Slide-Over Detail Drawer */}
+      <DetailDrawer
+        isOpen={!!previewCreative}
+        onClose={() => setPreviewCreative(null)}
+        title="Creative Showcase Details"
+        onEdit={previewCreative ? () => openEditModal(previewCreative) : null}
+        onDelete={previewCreative ? () => handleDelete(previewCreative.id) : null}
+      >
+        {previewCreative && (
+          <div className="flex flex-col gap-6">
             {previewCreative.thumbnail_url && (
-              <img
-                src={previewCreative.thumbnail_url}
-                alt={previewCreative.title}
-                style={{
-                  width: '100%',
-                  maxHeight: 240,
-                  borderRadius: 'var(--radius-md)',
-                  objectFit: 'cover',
-                  border: '1px solid var(--border)',
-                }}
-              />
+              <div className="overflow-hidden rounded-lg" style={{ border: '1px solid var(--border)' }}>
+                <img
+                  src={previewCreative.thumbnail_url}
+                  alt={previewCreative.title}
+                  style={{
+                    width: '100%',
+                    maxHeight: 260,
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              </div>
             )}
+
             <div>
-              <h2 className="heading-md" style={{ marginBottom: '0.2rem' }}>
-                {previewCreative.title}
-              </h2>
-              <div className="flex items-center gap-2" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                <span>{previewCreative.channel_title || 'YouTube Channel'}</span>
-                {previewCreative.category && <span>• {previewCreative.category}</span>}
+              <div className="flex items-center gap-2 mb-2">
+                {previewCreative.category && <span className="badge badge-accent">{previewCreative.category}</span>}
                 {previewCreative.featured && <span className="badge badge-success">Featured</span>}
+              </div>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                {previewCreative.title}
+              </h3>
+              <div className="flex items-center gap-2 text-muted" style={{ fontSize: '0.875rem' }}>
+                <Video size={15} style={{ color: 'var(--accent)' }} />
+                <span>{previewCreative.channel_title || 'YouTube Channel'}</span>
               </div>
             </div>
 
             {previewCreative.video_url && (
               <div>
-                <label className="form-label">YouTube URL</label>
+                <span className="stat-label mb-1.5 block" style={{ fontSize: '0.78rem' }}>YOUTUBE URL</span>
                 <a
                   href={previewCreative.video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5"
-                  style={{ color: 'var(--accent)', fontSize: '0.85rem' }}
+                  className="flex items-center gap-2"
+                  style={{ color: 'var(--accent)', fontSize: '0.9rem', wordBreak: 'break-all' }}
                 >
-                  <ExternalLink size={14} />
+                  <ExternalLink size={15} />
                   {previewCreative.video_url}
                 </a>
               </div>
@@ -231,38 +235,35 @@ export default function ManageCreativesPage() {
 
             {previewCreative.summary && (
               <div>
-                <label className="form-label">Summary</label>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                <span className="stat-label mb-2 block" style={{ fontSize: '0.78rem', letterSpacing: '0.04em' }}>
+                  SUMMARY
+                </span>
+                <div
+                  style={{
+                    fontSize: '0.95rem',
+                    color: 'var(--text-primary)',
+                    lineHeight: 1.7,
+                    whiteSpace: 'pre-wrap',
+                    background: 'var(--bg-primary)',
+                    padding: '1.25rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-subtle)',
+                  }}
+                >
                   {previewCreative.summary}
                 </div>
               </div>
             )}
-
-            <div className="modal-footer" style={{ padding: '1rem 0 0 0', borderTop: 'none' }}>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={() => handleDelete(previewCreative.id)}
-              >
-                Delete
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => openEditModal(previewCreative)}
-              >
-                Edit Creative
-              </button>
-            </div>
           </div>
-        </Modal>
-      )}
+        )}
+      </DetailDrawer>
 
       {/* Edit / Create Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={isEditing ? 'Edit Creative' : 'Add Creative'}
+        size="lg"
       >
         <form onSubmit={handleSubmit}>
           <div className="form-group">

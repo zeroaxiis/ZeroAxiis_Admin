@@ -6,9 +6,10 @@ import { useToast } from '@/context/ToastContext';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import DataTable from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
+import DetailDrawer from '@/components/ui/DetailDrawer';
 import ActionButtons from '@/components/ui/ActionButtons';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Building2 } from 'lucide-react';
 
 const initialForm = { title: '', organization: '', description: '', project_url: '', image: null };
 
@@ -16,8 +17,9 @@ export default function ManageProjectsPage() {
   const { showToast } = useToast();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Modals & Drawers
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewProject, setPreviewProject] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -56,13 +58,8 @@ export default function ManageProjectsPage() {
       project_url: project.project_url,
       image: null,
     });
-    setIsPreviewOpen(false);
+    setPreviewProject(null);
     setIsModalOpen(true);
-  };
-
-  const openPreviewModal = (project) => {
-    setPreviewProject(project);
-    setIsPreviewOpen(true);
   };
 
   const handleInputChange = (e) => {
@@ -109,7 +106,7 @@ export default function ManageProjectsPage() {
     try {
       await api.delete(`/project/${id}`);
       showToast('Project deleted successfully');
-      setIsPreviewOpen(false);
+      setPreviewProject(null);
       fetchProjects();
     } catch (err) {
       showToast(err.message || 'Delete failed', 'error');
@@ -140,7 +137,7 @@ export default function ManageProjectsPage() {
       header: 'Title',
       render: (row) => (
         <span
-          onClick={() => openPreviewModal(row)}
+          onClick={() => setPreviewProject(row)}
           style={{ cursor: 'pointer', fontWeight: 500 }}
           className="hover:underline"
         >
@@ -172,7 +169,7 @@ export default function ManageProjectsPage() {
       className: 'text-center',
       render: (row) => (
         <ActionButtons
-          onView={() => openPreviewModal(row)}
+          onView={() => setPreviewProject(row)}
           onEdit={() => openEditModal(row)}
           onDelete={() => handleDelete(row.id)}
         />
@@ -193,93 +190,87 @@ export default function ManageProjectsPage() {
 
       <DataTable columns={columns} data={projects} emptyMessage="No projects found." />
 
-      {/* Preview Modal */}
-      {previewProject && (
-        <Modal
-          isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
-          title="Project Preview"
-        >
-          <div className="flex flex-col gap-4">
+      {/* Zero-API Slide-Over Detail Drawer */}
+      <DetailDrawer
+        isOpen={!!previewProject}
+        onClose={() => setPreviewProject(null)}
+        title="Project Showcase Details"
+        onEdit={previewProject ? () => openEditModal(previewProject) : null}
+        onDelete={previewProject ? () => handleDelete(previewProject.id) : null}
+      >
+        {previewProject && (
+          <div className="flex flex-col gap-6">
             {previewProject.image_url && (
-              <img
-                src={previewProject.image_url}
-                alt={previewProject.title}
-                style={{
-                  width: '100%',
-                  maxHeight: 240,
-                  borderRadius: 'var(--radius-md)',
-                  objectFit: 'cover',
-                  border: '1px solid var(--border)',
-                }}
-              />
+              <div className="overflow-hidden rounded-lg" style={{ border: '1px solid var(--border)' }}>
+                <img
+                  src={previewProject.image_url}
+                  alt={previewProject.title}
+                  style={{
+                    width: '100%',
+                    maxHeight: 260,
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              </div>
             )}
+
             <div>
-              <h2 className="heading-md">{previewProject.title}</h2>
-              <span className="badge badge-muted">{previewProject.organization}</span>
+              <span className="badge badge-accent mb-2 inline-block">Project Portfolio</span>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                {previewProject.title}
+              </h3>
+              <div className="flex items-center gap-2 text-muted" style={{ fontSize: '0.875rem' }}>
+                <Building2 size={15} style={{ color: 'var(--accent)' }} />
+                <span>{previewProject.organization}</span>
+              </div>
             </div>
 
             {previewProject.project_url && (
               <div>
-                <label className="form-label">Project URL</label>
+                <span className="stat-label mb-1.5 block" style={{ fontSize: '0.78rem' }}>WEBSITE URL</span>
                 <a
                   href={previewProject.project_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5"
-                  style={{ color: 'var(--accent)', fontSize: '0.85rem' }}
+                  className="flex items-center gap-2"
+                  style={{ color: 'var(--accent)', fontSize: '0.9rem', wordBreak: 'break-all' }}
                 >
-                  <ExternalLink size={14} />
+                  <ExternalLink size={15} />
                   {previewProject.project_url}
                 </a>
               </div>
             )}
 
             <div>
-              <label className="form-label">Description</label>
+              <span className="stat-label mb-2 block" style={{ fontSize: '0.78rem', letterSpacing: '0.04em' }}>
+                PROJECT DESCRIPTION
+              </span>
               <div
                 style={{
-                  fontSize: '0.9rem',
-                  color: 'var(--text-secondary)',
-                  lineHeight: 1.6,
-                  maxHeight: 250,
-                  overflowY: 'auto',
+                  fontSize: '0.95rem',
+                  color: 'var(--text-primary)',
+                  lineHeight: 1.7,
                   whiteSpace: 'pre-wrap',
                   background: 'var(--bg-primary)',
-                  padding: '1rem',
-                  borderRadius: 'var(--radius-sm)',
+                  padding: '1.25rem',
+                  borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--border-subtle)',
                 }}
               >
                 {previewProject.description}
               </div>
             </div>
-
-            <div className="modal-footer" style={{ padding: '1rem 0 0 0', borderTop: 'none' }}>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={() => handleDelete(previewProject.id)}
-              >
-                Delete
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => openEditModal(previewProject)}
-              >
-                Edit Project
-              </button>
-            </div>
           </div>
-        </Modal>
-      )}
+        )}
+      </DetailDrawer>
 
       {/* Edit / Create Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={isEditing ? 'Edit Project' : 'Add Project'}
+        size="lg"
       >
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -292,7 +283,7 @@ export default function ManageProjectsPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Description</label>
-            <textarea name="description" className="form-input" value={formData.description} onChange={handleInputChange} required />
+            <textarea name="description" className="form-input" value={formData.description} onChange={handleInputChange} required style={{ minHeight: '130px' }} />
           </div>
           <div className="form-group">
             <label className="form-label">Project URL</label>

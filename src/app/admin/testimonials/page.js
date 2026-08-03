@@ -6,8 +6,10 @@ import { useToast } from '@/context/ToastContext';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import DataTable from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
+import DetailDrawer from '@/components/ui/DetailDrawer';
 import ActionButtons from '@/components/ui/ActionButtons';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { Quote, Building } from 'lucide-react';
 
 const initialForm = { name: '', role: '', company: '', comment: '' };
 
@@ -15,8 +17,9 @@ export default function ManageTestimonialsPage() {
   const { showToast } = useToast();
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Modals & Drawers
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewTestimonial, setPreviewTestimonial] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -54,13 +57,8 @@ export default function ManageTestimonialsPage() {
       company: t.company || '',
       comment: t.comment || '',
     });
-    setIsPreviewOpen(false);
+    setPreviewTestimonial(null);
     setIsModalOpen(true);
-  };
-
-  const openPreviewModal = (t) => {
-    setPreviewTestimonial(t);
-    setIsPreviewOpen(true);
   };
 
   const handleInputChange = (e) => {
@@ -100,7 +98,7 @@ export default function ManageTestimonialsPage() {
     try {
       await api.delete(`/testimonial/${id}`);
       showToast('Testimonial deleted successfully');
-      setIsPreviewOpen(false);
+      setPreviewTestimonial(null);
       fetchTestimonials();
     } catch (err) {
       showToast(err.message || 'Delete failed', 'error');
@@ -112,7 +110,7 @@ export default function ManageTestimonialsPage() {
       header: 'Name',
       render: (row) => (
         <span
-          onClick={() => openPreviewModal(row)}
+          onClick={() => setPreviewTestimonial(row)}
           style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--text-primary)' }}
           className="hover:underline"
         >
@@ -127,7 +125,7 @@ export default function ManageTestimonialsPage() {
       className: 'text-center',
       render: (row) => (
         <ActionButtons
-          onView={() => openPreviewModal(row)}
+          onView={() => setPreviewTestimonial(row)}
           onEdit={() => openEditModal(row)}
           onDelete={() => handleDelete(row.id)}
         />
@@ -148,68 +146,63 @@ export default function ManageTestimonialsPage() {
 
       <DataTable columns={columns} data={testimonials} emptyMessage="No testimonials found." />
 
-      {/* Preview Modal */}
-      {previewTestimonial && (
-        <Modal
-          isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
-          title="Testimonial Details"
-        >
-          <div className="flex flex-col gap-4">
-            <div>
-              <h2 className="heading-md">{previewTestimonial.name}</h2>
-              <div className="flex items-center gap-2 mt-1">
-                {previewTestimonial.role && <span className="badge badge-muted">{previewTestimonial.role}</span>}
-                {previewTestimonial.company && <span className="text-muted" style={{ fontSize: '0.8rem' }}>@ {previewTestimonial.company}</span>}
+      {/* Zero-API Slide-Over Detail Drawer */}
+      <DetailDrawer
+        isOpen={!!previewTestimonial}
+        onClose={() => setPreviewTestimonial(null)}
+        title="Testimonial Feedback Details"
+        onEdit={previewTestimonial ? () => openEditModal(previewTestimonial) : null}
+        onDelete={previewTestimonial ? () => handleDelete(previewTestimonial.id) : null}
+      >
+        {previewTestimonial && (
+          <div className="flex flex-col gap-6">
+            <div className="flex items-start justify-between p-4 rounded-lg" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                  {previewTestimonial.name}
+                </h3>
+                <div className="flex items-center gap-2 text-muted" style={{ fontSize: '0.875rem' }}>
+                  {previewTestimonial.role && <span className="badge badge-accent">{previewTestimonial.role}</span>}
+                  {previewTestimonial.company && (
+                    <span className="flex items-center gap-1.5 text-secondary">
+                      <Building size={14} /> @ {previewTestimonial.company}
+                    </span>
+                  )}
+                </div>
               </div>
+              <Quote size={28} style={{ color: 'var(--accent)', opacity: 0.8 }} />
             </div>
 
             <div>
-              <label className="form-label">Testimonial Comment</label>
+              <span className="stat-label mb-2 block" style={{ fontSize: '0.78rem', letterSpacing: '0.04em' }}>
+                FULL TESTIMONIAL COMMENT
+              </span>
               <div
                 style={{
-                  fontSize: '0.9rem',
-                  color: 'var(--text-secondary)',
-                  lineHeight: 1.6,
-                  maxHeight: 250,
-                  overflowY: 'auto',
+                  fontSize: '0.95rem',
+                  color: 'var(--text-primary)',
+                  lineHeight: 1.7,
                   whiteSpace: 'pre-wrap',
-                  background: 'var(--bg-primary)',
-                  padding: '1rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-subtle)',
                   fontStyle: 'italic',
+                  background: 'var(--bg-primary)',
+                  padding: '1.25rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)',
                 }}
               >
                 "{previewTestimonial.comment}"
               </div>
             </div>
-
-            <div className="modal-footer" style={{ padding: '1rem 0 0 0', borderTop: 'none' }}>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={() => handleDelete(previewTestimonial.id)}
-              >
-                Delete
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => openEditModal(previewTestimonial)}
-              >
-                Edit Testimonial
-              </button>
-            </div>
           </div>
-        </Modal>
-      )}
+        )}
+      </DetailDrawer>
 
-      {/* Edit / Create Modal matching backend schema exactly */}
+      {/* Edit / Create Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={isEditing ? 'Edit Testimonial' : 'Add Testimonial'}
+        size="lg"
       >
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -257,7 +250,7 @@ export default function ManageTestimonialsPage() {
               onChange={handleInputChange}
               required
               placeholder="Client feedback..."
-              style={{ minHeight: '120px' }}
+              style={{ minHeight: '140px' }}
             />
           </div>
 
