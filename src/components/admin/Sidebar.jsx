@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
 import Logo from '@/components/ui/Logo';
 import {
   LayoutDashboard,
@@ -11,7 +10,8 @@ import {
   FolderKanban,
   Video,
   MessageSquareQuote,
-  LogOut,
+  User,
+  ShieldCheck,
 } from 'lucide-react';
 
 const navItems = [
@@ -25,7 +25,6 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
 
   return (
     <aside className="admin-sidebar">
@@ -58,15 +57,42 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* Static Unclickable Admin Profile Section */}
       <div className="sidebar-footer">
-        <button
-          className="nav-link w-full text-left flex items-center gap-2"
-          onClick={logout}
-          style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+        <div
+          className="flex items-center gap-3 p-2.5 rounded-lg"
+          style={{
+            background: 'var(--bg-primary)',
+            border: '1px solid var(--border-subtle)',
+            userSelect: 'none',
+          }}
         >
-          <LogOut size={15} />
-          Sign out
-        </button>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'var(--bg-elevated)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid var(--border)',
+              flexShrink: 0,
+            }}
+          >
+            <User size={15} style={{ color: 'var(--accent)' }} />
+          </div>
+
+          <div className="overflow-hidden">
+            <div className="flex items-center gap-1.5" style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+              <span>Administrator</span>
+              <ShieldCheck size={13} style={{ color: 'var(--success)' }} />
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }} className="truncate">
+              ZeroAxiis Admin
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
   );

@@ -6,6 +6,7 @@ import { useToast } from '@/context/ToastContext';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import DataTable from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
+import DetailDrawer from '@/components/ui/DetailDrawer';
 import ActionButtons from '@/components/ui/ActionButtons';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
@@ -15,8 +16,9 @@ export default function ManageTeamPage() {
   const { showToast } = useToast();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Modals & Drawers
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewMember, setPreviewMember] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -49,13 +51,8 @@ export default function ManageTeamPage() {
     setIsEditing(true);
     setEditingId(member.id);
     setFormData({ name: member.name, role: member.role, description: member.description, image: null });
-    setIsPreviewOpen(false);
+    setPreviewMember(null);
     setIsModalOpen(true);
-  };
-
-  const openPreviewModal = (member) => {
-    setPreviewMember(member);
-    setIsPreviewOpen(true);
   };
 
   const handleInputChange = (e) => {
@@ -101,7 +98,7 @@ export default function ManageTeamPage() {
     try {
       await api.delete(`/team/${id}`);
       showToast('Team member deleted successfully');
-      setIsPreviewOpen(false);
+      setPreviewMember(null);
       fetchTeam();
     } catch (err) {
       showToast(err.message || 'Delete failed', 'error');
@@ -112,7 +109,11 @@ export default function ManageTeamPage() {
     {
       header: 'Member',
       render: (row) => (
-        <div className="flex items-center gap-3" onClick={() => openPreviewModal(row)} style={{ cursor: 'pointer' }}>
+        <div
+          className="flex items-center gap-3"
+          onClick={() => setPreviewMember(row)}
+          style={{ cursor: 'pointer' }}
+        >
           <img
             src={row.image_url}
             alt={row.name}
@@ -140,7 +141,7 @@ export default function ManageTeamPage() {
       className: 'text-center',
       render: (row) => (
         <ActionButtons
-          onView={() => openPreviewModal(row)}
+          onView={() => setPreviewMember(row)}
           onEdit={() => openEditModal(row)}
           onDelete={() => handleDelete(row.id)}
         />
@@ -161,77 +162,69 @@ export default function ManageTeamPage() {
 
       <DataTable columns={columns} data={members} emptyMessage="No team members found." />
 
-      {/* Preview Modal */}
-      {previewMember && (
-        <Modal
-          isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
-          title="Team Member Details"
-        >
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-4">
+      {/* Zero-API Slide-Over Detail Drawer */}
+      <DetailDrawer
+        isOpen={!!previewMember}
+        onClose={() => setPreviewMember(null)}
+        title="Member Details"
+        onEdit={previewMember ? () => openEditModal(previewMember) : null}
+        onDelete={previewMember ? () => handleDelete(previewMember.id) : null}
+      >
+        {previewMember && (
+          <div className="flex flex-col gap-6">
+            {/* Header Profile Section */}
+            <div className="flex items-center gap-4 p-4 rounded-lg" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
               <img
                 src={previewMember.image_url}
                 alt={previewMember.name}
                 style={{
-                  width: 64,
-                  height: 64,
+                  width: 72,
+                  height: 72,
                   borderRadius: '50%',
                   objectFit: 'cover',
-                  border: '1px solid var(--border)',
+                  border: '2px solid var(--border)',
                 }}
               />
               <div>
-                <h2 className="heading-md">{previewMember.name}</h2>
-                <span className="badge badge-muted">{previewMember.role}</span>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                  {previewMember.name}
+                </h3>
+                <span className="badge badge-accent" style={{ fontSize: '0.825rem' }}>
+                  {previewMember.role}
+                </span>
               </div>
             </div>
 
+            {/* Description / Bio Section */}
             <div>
-              <label className="form-label">Full Bio / Description</label>
+              <span className="stat-label mb-2 block" style={{ fontSize: '0.78rem', letterSpacing: '0.04em' }}>
+                BIOGRAPHY & DESCRIPTION
+              </span>
               <div
                 style={{
-                  fontSize: '0.9rem',
-                  color: 'var(--text-secondary)',
-                  lineHeight: 1.6,
-                  maxHeight: 250,
-                  overflowY: 'auto',
+                  fontSize: '0.95rem',
+                  color: 'var(--text-primary)',
+                  lineHeight: 1.7,
                   whiteSpace: 'pre-wrap',
                   background: 'var(--bg-primary)',
-                  padding: '1rem',
-                  borderRadius: 'var(--radius-sm)',
+                  padding: '1.25rem',
+                  borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--border-subtle)',
                 }}
               >
                 {previewMember.description}
               </div>
             </div>
-
-            <div className="modal-footer" style={{ padding: '1rem 0 0 0', borderTop: 'none' }}>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={() => handleDelete(previewMember.id)}
-              >
-                Delete
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => openEditModal(previewMember)}
-              >
-                Edit Member
-              </button>
-            </div>
           </div>
-        </Modal>
-      )}
+        )}
+      </DetailDrawer>
 
       {/* Edit / Create Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={isEditing ? 'Edit Team Member' : 'Add Team Member'}
+        size="lg"
       >
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -244,7 +237,7 @@ export default function ManageTeamPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Description</label>
-            <textarea name="description" className="form-input" value={formData.description} onChange={handleInputChange} required />
+            <textarea name="description" className="form-input" value={formData.description} onChange={handleInputChange} required style={{ minHeight: '130px' }} />
           </div>
           <div className="form-group">
             <label className="form-label">Image {!isEditing && <span style={{ color: 'var(--danger)' }}>*</span>}</label>
