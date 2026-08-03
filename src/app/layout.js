@@ -1,6 +1,7 @@
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata = {
   title: 'ZeroAxiis — Admin CMS',
@@ -28,6 +29,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <ToastProvider>{children}</ToastProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
