@@ -9,6 +9,7 @@ import Modal from '@/components/ui/Modal';
 import DetailDrawer from '@/components/ui/DetailDrawer';
 import ActionButtons from '@/components/ui/ActionButtons';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { ExternalLink, Video } from 'lucide-react';
 
 const initialForm = { video_url: '', summary: '', category: '', featured: false };
@@ -240,17 +241,13 @@ export default function ManageCreativesPage() {
                 </span>
                 <div
                   style={{
-                    fontSize: '0.95rem',
-                    color: 'var(--text-primary)',
-                    lineHeight: 1.7,
-                    whiteSpace: 'pre-wrap',
                     background: 'var(--bg-primary)',
                     padding: '1.25rem',
                     borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border-subtle)',
                   }}
                 >
-                  {previewCreative.summary}
+                  <MarkdownRenderer content={previewCreative.summary} />
                 </div>
               </div>
             )}
