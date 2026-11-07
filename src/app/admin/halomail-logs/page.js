@@ -9,68 +9,19 @@ import DetailDrawer from '@/components/ui/DetailDrawer';
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import {
-  ScrollText,
   RefreshCw,
   Search,
   Filter,
   Copy,
   Check,
   Code,
-  Calendar,
-  Clock,
-  Radio,
-  ExternalLink,
   Info,
-  Shield,
-  Layers,
-  ArrowUpDown,
 } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1';
 
-// Helper to pick badge style for various HaloMail event types
-function getEventBadgeClass(event) {
-  const ev = (event || '').toLowerCase();
-  if (ev.includes('fail') || ev.includes('bounce') || ev.includes('drop') || ev.includes('error')) {
-    return 'badge-danger';
-  }
-  if (ev.includes('deliver') || ev.includes('success') || ev.includes('complete')) {
-    return 'badge-success';
-  }
-  if (ev.includes('open') || ev.includes('click')) {
-    return 'badge-purple';
-  }
-  if (ev.includes('sent') || ev.includes('send') || ev.includes('queue')) {
-    return 'badge-info';
-  }
-  if (ev.includes('warn') || ev.includes('delay') || ev.includes('retry')) {
-    return 'badge-warning';
-  }
-  return 'badge-accent';
-}
-
-// Relative time formatter
-function formatRelativeTime(dateString) {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-
-  const now = new Date();
-  const diffInSeconds = Math.floor((now - date) / 1000);
-
-  if (diffInSeconds < 5) return 'Just now';
-  if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours}h ago`;
-  const diffInDays = Math.floor(diffInHours / 24);
-  return `${diffInDays}d ago`;
-}
-
-// Format full date time
 function formatDateTime(dateString) {
-  if (!dateString) return 'N/A';
+  if (!dateString) return '—';
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
   return date.toLocaleString('en-US', {
@@ -80,7 +31,7 @@ function formatDateTime(dateString) {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: true,
+    hour12: false,
   });
 }
 
@@ -89,7 +40,6 @@ export default function HaloMailLogsPage() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEventType, setSelectedEventType] = useState('ALL');
   const [selectedLog, setSelectedLog] = useState(null);
@@ -97,23 +47,20 @@ export default function HaloMailLogsPage() {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [copiedJson, setCopiedJson] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null);
 
   const fetchLogs = useCallback(
     async (isManual = false) => {
       if (isManual) setRefreshing(true);
       try {
         const response = await api.get('/halomail/events');
-        // The Go backend returns: { success: true, count: N, data: [...] }
         const eventData = response?.data || [];
         setLogs(Array.isArray(eventData) ? eventData : []);
-        setLastUpdated(new Date());
         if (isManual) {
-          showToast('HaloMail logs refreshed');
+          showToast('Logs refreshed');
         }
       } catch (err) {
         if (isManual) {
-          showToast(err.message || 'Failed to fetch HaloMail logs', 'error');
+          showToast(err.message || 'Failed to fetch logs', 'error');
         }
       } finally {
         setLoading(false);
@@ -123,21 +70,10 @@ export default function HaloMailLogsPage() {
     [showToast]
   );
 
-  // Initial load
   useEffect(() => {
     fetchLogs(false);
   }, [fetchLogs]);
 
-  // Auto-refresh interval (every 10 seconds when enabled)
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(() => {
-      fetchLogs(false);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [autoRefresh, fetchLogs]);
-
-  // Distinct event types
   const eventTypes = useMemo(() => {
     const types = new Set();
     logs.forEach((log) => {
@@ -146,15 +82,12 @@ export default function HaloMailLogsPage() {
     return Array.from(types).sort();
   }, [logs]);
 
-  // Filtered and searched logs
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
-      // Event type filter
       if (selectedEventType !== 'ALL' && log.event !== selectedEventType) {
         return false;
       }
 
-      // Search query filter (matches ID, event, timestamp, or data content)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const idMatch = (log.id || '').toLowerCase().includes(q);
@@ -190,15 +123,14 @@ export default function HaloMailLogsPage() {
     setIsDrawerOpen(true);
   };
 
-  const sampleWebhookJson = JSON.stringify(
+  const samplePayload = JSON.stringify(
     {
-      event: 'email.delivered',
+      event: 'email.sent',
       timestamp: new Date().toISOString(),
       data: {
-        recipient: 'client@example.com',
-        subject: 'Project Inquiry Response',
-        status: 'delivered',
-        message_id: 'msg_98fbc1234567',
+        to: 'client@example.com',
+        subject: 'Contact Form',
+        status: 'queued',
       },
     },
     null,
@@ -210,28 +142,23 @@ export default function HaloMailLogsPage() {
       header: 'Event',
       accessor: 'event',
       render: (row) => (
-        <div className="flex items-center gap-2">
-          <span className="pulse-dot" style={{ width: 7, height: 7 }} />
-          <span className={`badge ${getEventBadgeClass(row.event)}`}>
-            {row.event || 'unnamed.event'}
-          </span>
-        </div>
+        <span className="badge badge-accent font-mono" style={{ fontSize: '0.75rem' }}>
+          {row.event || 'unnamed'}
+        </span>
       ),
     },
     {
       header: 'Event ID',
       accessor: 'id',
       render: (row) => {
-        const fullId = row.id || 'N/A';
-        const shortId = fullId.length > 12 ? `${fullId.slice(0, 8)}...` : fullId;
+        const fullId = row.id || '—';
+        const shortId = fullId.length > 14 ? `${fullId.slice(0, 10)}...` : fullId;
         return (
           <div className="flex items-center gap-1.5 font-mono text-muted" style={{ fontSize: '0.8rem' }}>
             <span title={fullId}>{shortId}</span>
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCopy(fullId, row.id);
-              }}
+              type="button"
+              onClick={() => handleCopy(fullId, row.id)}
               className="btn btn-icon btn-outline"
               style={{ padding: '0.15rem 0.3rem', fontSize: '0.7rem' }}
               title="Copy ID"
@@ -243,63 +170,42 @@ export default function HaloMailLogsPage() {
       },
     },
     {
-      header: 'Payload Timestamp',
+      header: 'Timestamp',
       accessor: 'timestamp',
       render: (row) => (
-        <div style={{ fontSize: '0.82rem' }}>
-          <div style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-            {formatRelativeTime(row.timestamp)}
-          </div>
-          <div className="text-muted" style={{ fontSize: '0.75rem' }}>
-            {formatDateTime(row.timestamp)}
-          </div>
-        </div>
+        <span className="text-secondary" style={{ fontSize: '0.8rem' }}>
+          {formatDateTime(row.timestamp)}
+        </span>
       ),
     },
     {
-      header: 'Ingested At (Server)',
+      header: 'Received At',
       accessor: 'received_at',
       render: (row) => (
-        <div style={{ fontSize: '0.82rem' }}>
-          <div style={{ color: 'var(--text-secondary)' }}>
-            {formatRelativeTime(row.received_at)}
-          </div>
-          <div className="text-muted" style={{ fontSize: '0.75rem' }}>
-            {formatDateTime(row.received_at)}
-          </div>
-        </div>
+        <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+          {formatDateTime(row.received_at)}
+        </span>
       ),
     },
     {
-      header: 'Payload Preview',
+      header: 'Payload Summary',
       accessor: 'data',
       render: (row) => {
-        const dataKeys = Object.keys(row.data || {});
-        if (dataKeys.length === 0) {
-          return <span className="text-muted" style={{ fontSize: '0.78rem' }}>Empty object</span>;
+        const keys = Object.keys(row.data || {});
+        if (keys.length === 0) {
+          return <span className="text-muted" style={{ fontSize: '0.75rem' }}>—</span>;
         }
-
-        // Summary representation
-        const preview = dataKeys
+        const snippet = keys
           .slice(0, 3)
           .map((k) => `${k}: ${typeof row.data[k] === 'object' ? '{...}' : String(row.data[k])}`)
           .join(', ');
-
         return (
           <div
-            className="truncate font-mono"
-            style={{
-              maxWidth: '240px',
-              fontSize: '0.77rem',
-              color: 'var(--text-muted)',
-              background: 'var(--bg-primary)',
-              padding: '0.2rem 0.5rem',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-subtle)',
-            }}
-            title={preview}
+            className="truncate font-mono text-muted"
+            style={{ maxWidth: 260, fontSize: '0.78rem' }}
+            title={snippet}
           >
-            {preview}
+            {snippet}
           </div>
         );
       },
@@ -309,6 +215,7 @@ export default function HaloMailLogsPage() {
       className: 'text-center',
       render: (row) => (
         <button
+          type="button"
           onClick={() => handleInspect(row)}
           className="btn btn-outline btn-sm flex items-center gap-1.5"
           style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem' }}
@@ -322,51 +229,30 @@ export default function HaloMailLogsPage() {
   if (loading) return <LoadingSpinner size={32} />;
 
   return (
-    <div className="animate-fade-in pb-8">
-      {/* Page Header */}
-      <div className="flex justify-between items-center mb-6">
+    <div className="animate-fade-in">
+      {/* Header matching standard AdminPageHeader style */}
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="heading-lg" style={{ fontSize: '1.75rem', marginBottom: '0.2rem' }}>
-              HaloMail Logs
-            </h1>
-            <span className="badge badge-accent flex items-center gap-1">
-              <span className="pulse-dot" /> Live Webhook Feed
-            </span>
-          </div>
-          <p className="text-secondary" style={{ fontSize: '0.875rem' }}>
-            Real-time webhook events and delivery logs ingested from HaloMail.
+          <h1 className="heading-lg">HaloMail Logs</h1>
+          <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: '0.2rem' }}>
+            Inbound webhook events and delivery logs from HaloMail
           </p>
         </div>
 
-        {/* Header Actions */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setIsInfoModalOpen(true)}
             className="btn btn-outline btn-sm flex items-center gap-1.5"
-            style={{ padding: '0.45rem 0.85rem' }}
           >
-            <Info size={14} /> Webhook Endpoint
+            <Info size={14} /> Webhook Info
           </button>
 
           <button
-            onClick={() => setAutoRefresh((prev) => !prev)}
-            className={`btn btn-sm flex items-center gap-1.5 ${
-              autoRefresh ? 'btn-primary' : 'btn-outline'
-            }`}
-            style={{ padding: '0.45rem 0.85rem' }}
-            title="Toggle polling every 10 seconds"
-          >
-            <Radio size={14} className={autoRefresh ? 'animate-pulse' : ''} />
-            Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
-          </button>
-
-          <button
+            type="button"
             onClick={() => fetchLogs(true)}
             disabled={refreshing}
             className="btn btn-outline btn-sm flex items-center gap-1.5"
-            style={{ padding: '0.45rem 0.85rem' }}
-            title="Fetch latest events from backend"
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
             Refresh
@@ -374,69 +260,12 @@ export default function HaloMailLogsPage() {
         </div>
       </div>
 
-      {/* Overview Metric Cards */}
-      <div className="grid-4 mb-6" style={{ gap: '1rem' }}>
-        <div className="stat-card" style={{ padding: '1.2rem 1.25rem' }}>
-          <div className="flex justify-between items-center mb-2">
-            <span className="stat-label">Total Events</span>
-            <ScrollText size={16} style={{ color: 'var(--accent)' }} />
-          </div>
-          <div className="stat-value" style={{ fontSize: '1.75rem' }}>
-            {logs.length}
-          </div>
-          <div className="text-muted" style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
-            Capped at latest 50 entries
-          </div>
-        </div>
-
-        <div className="stat-card" style={{ padding: '1.2rem 1.25rem' }}>
-          <div className="flex justify-between items-center mb-2">
-            <span className="stat-label">Unique Event Types</span>
-            <Layers size={16} style={{ color: '#38bdf8' }} />
-          </div>
-          <div className="stat-value" style={{ fontSize: '1.75rem' }}>
-            {eventTypes.length}
-          </div>
-          <div className="text-muted" style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
-            {eventTypes.length > 0 ? eventTypes.slice(0, 2).join(', ') : 'None registered'}
-          </div>
-        </div>
-
-        <div className="stat-card" style={{ padding: '1.2rem 1.25rem' }}>
-          <div className="flex justify-between items-center mb-2">
-            <span className="stat-label">Latest Activity</span>
-            <Clock size={16} style={{ color: '#22c55e' }} />
-          </div>
-          <div className="truncate" style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            {logs.length > 0 ? logs[0].event : 'No events'}
-          </div>
-          <div className="text-muted" style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
-            {logs.length > 0 ? formatRelativeTime(logs[0].received_at) : 'Waiting for incoming webhook'}
-          </div>
-        </div>
-
-        <div className="stat-card" style={{ padding: '1.2rem 1.25rem' }}>
-          <div className="flex justify-between items-center mb-2">
-            <span className="stat-label">Ingestion Receiver</span>
-            <Shield size={16} style={{ color: '#a855f7' }} />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="badge badge-success" style={{ fontSize: '0.8rem' }}>
-              Active Listener
-            </span>
-          </div>
-          <div className="text-muted truncate font-mono" style={{ fontSize: '0.725rem', marginTop: '0.35rem' }}>
-            /api/v1/halomail/webhook
-          </div>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="glass-panel p-4 mb-6 flex flex-wrap items-center justify-between gap-3">
+      {/* Search and Filter Row */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3 flex-1" style={{ minWidth: 260 }}>
-          <div className="relative flex-1">
+          <div className="relative flex-1" style={{ maxWidth: 360 }}>
             <Search
-              size={15}
+              size={14}
               style={{
                 position: 'absolute',
                 left: '0.85rem',
@@ -447,7 +276,7 @@ export default function HaloMailLogsPage() {
             />
             <input
               type="text"
-              placeholder="Search by event, Mongo ID, or payload content..."
+              placeholder="Search events, IDs, or payloads..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="form-input"
@@ -455,39 +284,35 @@ export default function HaloMailLogsPage() {
             />
           </div>
 
-          {/* Event Type Filter */}
-          <div className="flex items-center gap-1.5">
-            <Filter size={15} style={{ color: 'var(--text-muted)' }} />
-            <select
-              value={selectedEventType}
-              onChange={(e) => setSelectedEventType(e.target.value)}
-              className="form-input"
-              style={{
-                width: 'auto',
-                minWidth: 160,
-                fontSize: '0.85rem',
-                height: 38,
-                padding: '0 0.85rem',
-                cursor: 'pointer',
-              }}
-            >
-              <option value="ALL">All Event Types ({logs.length})</option>
-              {eventTypes.map((type) => {
-                const count = logs.filter((l) => l.event === type).length;
-                return (
+          {eventTypes.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Filter size={14} style={{ color: 'var(--text-muted)' }} />
+              <select
+                value={selectedEventType}
+                onChange={(e) => setSelectedEventType(e.target.value)}
+                className="form-input"
+                style={{
+                  width: 'auto',
+                  minWidth: 160,
+                  fontSize: '0.85rem',
+                  height: 38,
+                  padding: '0 0.85rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="ALL">All Events ({logs.length})</option>
+                {eventTypes.map((type) => (
                   <option key={type} value={type}>
-                    {type} ({count})
+                    {type}
                   </option>
-                );
-              })}
-            </select>
-          </div>
-        </div>
+                ))}
+              </select>
+            </div>
+          )}
 
-        {/* Clear Filters / Counter */}
-        <div className="flex items-center gap-3">
           {(searchQuery || selectedEventType !== 'ALL') && (
             <button
+              type="button"
               onClick={() => {
                 setSearchQuery('');
                 setSelectedEventType('ALL');
@@ -495,152 +320,80 @@ export default function HaloMailLogsPage() {
               className="btn btn-outline btn-sm"
               style={{ fontSize: '0.78rem' }}
             >
-              Reset Filters
+              Clear
             </button>
           )}
-
-          <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-            Showing <strong>{filteredLogs.length}</strong> of <strong>{logs.length}</strong> events
-          </span>
         </div>
+
+        <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+          {filteredLogs.length} event{filteredLogs.length === 1 ? '' : 's'}
+        </span>
       </div>
 
-      {/* Events Table */}
-      {logs.length === 0 ? (
-        <div className="glass-panel p-8 text-center">
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: '50%',
-              background: 'rgba(200, 255, 0, 0.08)',
-              border: '1px solid rgba(200, 255, 0, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 1.25rem',
-            }}
-          >
-            <ScrollText size={24} style={{ color: 'var(--accent)' }} />
-          </div>
-          <h3 className="heading-md" style={{ marginBottom: '0.4rem' }}>
-            No HaloMail Webhook Events Logged Yet
-          </h3>
-          <p className="text-secondary mb-6" style={{ fontSize: '0.875rem', maxWidth: 480, margin: '0 auto 1.5rem' }}>
-            When HaloMail dispatches webhooks to your backend, verified payloads will automatically be saved to MongoDB
-            and displayed here.
-          </p>
+      {/* Main Table */}
+      <DataTable
+        columns={columns}
+        data={filteredLogs}
+        emptyMessage="No HaloMail webhook events logged yet."
+      />
 
-          <button
-            onClick={() => setIsInfoModalOpen(true)}
-            className="btn btn-primary btn-sm flex items-center gap-1.5 mx-auto"
-            style={{ margin: '0 auto' }}
-          >
-            <Info size={14} /> View Webhook Integration Details
-          </button>
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filteredLogs}
-          emptyMessage="No events matched your current search or filter criteria."
-        />
-      )}
-
-      {/* Detail Drawer for Inspecting Event Payload */}
+      {/* Slide-Over Drawer for Payload Inspection */}
       <DetailDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        title="Event Payload Inspector"
+        title="Webhook Event Payload"
       >
         {selectedLog && (
           <div className="flex flex-col gap-4">
-            {/* Event Header Banner */}
             <div
-              className="p-4 rounded-lg flex flex-col gap-2.5"
+              className="p-3.5 rounded-lg flex flex-col gap-2"
               style={{
                 background: 'var(--bg-primary)',
                 border: '1px solid var(--border-subtle)',
               }}
             >
               <div className="flex justify-between items-center">
-                <span className="text-muted" style={{ fontSize: '0.78rem' }}>Event Type</span>
-                <span className={`badge ${getEventBadgeClass(selectedLog.event)}`}>
-                  {selectedLog.event}
-                </span>
+                <span className="text-muted" style={{ fontSize: '0.8rem' }}>Event</span>
+                <span className="badge badge-accent font-mono">{selectedLog.event}</span>
               </div>
-
               <div className="flex justify-between items-center">
-                <span className="text-muted" style={{ fontSize: '0.78rem' }}>Mongo Document ID</span>
-                <div className="flex items-center gap-1.5 font-mono" style={{ fontSize: '0.8rem' }}>
+                <span className="text-muted" style={{ fontSize: '0.8rem' }}>ID</span>
+                <div className="flex items-center gap-1 font-mono" style={{ fontSize: '0.8rem' }}>
                   <span>{selectedLog.id}</span>
                   <button
+                    type="button"
                     onClick={() => handleCopy(selectedLog.id, 'drawer-id')}
                     className="btn btn-icon btn-outline"
-                    style={{ padding: '0.2rem 0.35rem' }}
-                    title="Copy Mongo ID"
+                    style={{ padding: '0.15rem 0.3rem' }}
                   >
-                    {copiedId === 'drawer-id' ? <Check size={12} className="text-success" /> : <Copy size={12} />}
+                    {copiedId === 'drawer-id' ? <Check size={11} className="text-success" /> : <Copy size={11} />}
                   </button>
                 </div>
               </div>
-
               <div className="flex justify-between items-center">
-                <span className="text-muted" style={{ fontSize: '0.78rem' }}>Payload Timestamp</span>
-                <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                <span className="text-muted" style={{ fontSize: '0.8rem' }}>Payload Timestamp</span>
+                <span className="text-secondary" style={{ fontSize: '0.8rem' }}>
                   {formatDateTime(selectedLog.timestamp)}
                 </span>
               </div>
-
               <div className="flex justify-between items-center">
-                <span className="text-muted" style={{ fontSize: '0.78rem' }}>Server Ingested At</span>
-                <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                  {formatDateTime(selectedLog.received_at)} ({formatRelativeTime(selectedLog.received_at)})
+                <span className="text-muted" style={{ fontSize: '0.8rem' }}>Ingested At</span>
+                <span className="text-secondary" style={{ fontSize: '0.8rem' }}>
+                  {formatDateTime(selectedLog.received_at)}
                 </span>
               </div>
             </div>
 
-            {/* Quick Key-Value Cards if data exists */}
-            {selectedLog.data && Object.keys(selectedLog.data).length > 0 && (
-              <div>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                  Parsed Attributes
-                </h4>
-                <div className="grid-2 gap-2">
-                  {Object.entries(selectedLog.data)
-                    .filter(([_, v]) => typeof v !== 'object' && v !== null)
-                    .slice(0, 6)
-                    .map(([key, val]) => (
-                      <div
-                        key={key}
-                        className="p-2.5 rounded-lg"
-                        style={{
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border-subtle)',
-                        }}
-                      >
-                        <div className="text-muted truncate" style={{ fontSize: '0.72rem', textTransform: 'uppercase' }}>
-                          {key}
-                        </div>
-                        <div className="truncate font-mono" style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                          {String(val)}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Full Raw JSON */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Full JSON Payload
-                </h4>
+                <span className="stat-label" style={{ fontSize: '0.75rem', letterSpacing: '0.04em' }}>
+                  RAW JSON
+                </span>
                 <button
+                  type="button"
                   onClick={() => handleCopy(JSON.stringify(selectedLog, null, 2), 'json')}
                   className="btn btn-outline btn-sm flex items-center gap-1.5"
-                  style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
+                  style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}
                 >
                   {copiedJson ? (
                     <>
@@ -666,18 +419,16 @@ export default function HaloMailLogsPage() {
       <Modal
         isOpen={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
-        title="HaloMail Webhook Configuration"
+        title="Webhook Configuration"
         size="lg"
       >
         <div className="flex flex-col gap-4">
-          <p className="text-secondary" style={{ fontSize: '0.875rem' }}>
-            The backend exposes a secure webhook receiver that validates HMAC signatures and stores verified events into
-            MongoDB collection <code>halomail_events</code>.
+          <p className="text-secondary" style={{ fontSize: '0.85rem' }}>
+            Inbound webhooks dispatched from HaloMail are validated against HMAC signatures and saved to MongoDB.
           </p>
 
-          {/* Endpoint URL Box */}
           <div
-            className="p-3.5 rounded-lg flex items-center justify-between"
+            className="p-3 rounded-lg flex items-center justify-between"
             style={{
               background: 'var(--bg-primary)',
               border: '1px solid var(--border)',
@@ -685,73 +436,57 @@ export default function HaloMailLogsPage() {
           >
             <div>
               <div className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                WEBHOOK URL
+                ENDPOINT URL
               </div>
-              <div className="font-mono text-primary" style={{ fontSize: '0.85rem' }}>
+              <div className="font-mono text-secondary" style={{ fontSize: '0.85rem' }}>
                 {API_BASE_URL}/halomail/webhook
               </div>
             </div>
             <button
+              type="button"
               onClick={() => handleCopy(`${API_BASE_URL}/halomail/webhook`, 'url')}
               className="btn btn-outline btn-sm"
             >
-              {copiedId === 'url' ? <Check size={13} className="text-success" /> : <Copy size={13} />}
+              {copiedId === 'url' ? <Check size={12} className="text-success" /> : <Copy size={12} />}
             </button>
           </div>
 
-          {/* Required Headers Box */}
           <div
-            className="p-3.5 rounded-lg flex flex-col gap-2"
+            className="p-3 rounded-lg flex flex-col gap-1.5"
             style={{
               background: 'var(--bg-primary)',
               border: '1px solid var(--border)',
             }}
           >
             <div className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
-              REQUIRED HEADERS
+              HEADERS
             </div>
-            <div className="font-mono" style={{ fontSize: '0.8rem' }}>
-              <div>
-                <strong style={{ color: 'var(--accent)' }}>X-HaloMail-Signature:</strong> &lt;HMAC-SHA256 hex signature&gt;
-              </div>
-              <div className="mt-1 text-muted">
-                Content-Type: application/json
-              </div>
+            <div className="font-mono text-secondary" style={{ fontSize: '0.8rem' }}>
+              <div>X-HaloMail-Signature: &lt;hmac-sha256-hex&gt;</div>
+              <div>Content-Type: application/json</div>
             </div>
           </div>
 
-          {/* Expected Payload Schema */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <span className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                EXAMPLE PAYLOAD STRUCTURE
+                SAMPLE PAYLOAD
               </span>
               <button
-                onClick={() => handleCopy(sampleWebhookJson, 'sample')}
-                className="btn btn-outline btn-sm flex items-center gap-1"
-                style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
+                type="button"
+                onClick={() => handleCopy(samplePayload, 'sample')}
+                className="btn btn-outline btn-sm"
+                style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem' }}
               >
-                {copiedId === 'sample' ? <Check size={11} className="text-success" /> : <Copy size={11} />} Copy Sample
+                {copiedId === 'sample' ? <Check size={11} className="text-success" /> : <Copy size={11} />} Copy
               </button>
             </div>
             <pre className="json-pretty-box" style={{ fontSize: '0.78rem' }}>
-              {sampleWebhookJson}
+              {samplePayload}
             </pre>
-          </div>
-
-          <div
-            className="p-3 rounded-lg text-secondary"
-            style={{
-              background: 'rgba(56, 189, 248, 0.05)',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
-              fontSize: '0.8rem',
-            }}
-          >
-            <strong>Replay Attack Protection:</strong> Incoming events with timestamps older than 5 minutes or in the future are automatically rejected by the Go handler.
           </div>
         </div>
       </Modal>
     </div>
   );
 }
-

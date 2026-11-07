@@ -635,15 +635,12 @@ export default function DashboardPage() {
               border: '1px solid var(--border-subtle)',
             }}
           >
-            <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+            <p className="text-muted" style={{ fontSize: '0.85rem' }}>
               No HaloMail webhook events recorded yet.
-            </p>
-            <p className="text-secondary" style={{ fontSize: '0.78rem' }}>
-              Webhooks sent to <code style={{ color: 'var(--accent)' }}>/api/v1/halomail/webhook</code> will show up here in real time.
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2">
             {data.halomailLogs.slice(0, 5).map((log, idx) => (
               <div
                 key={log.id || idx}
@@ -654,22 +651,11 @@ export default function DashboardPage() {
                 }}
               >
                 <div className="flex items-center gap-3">
-                  <span className="pulse-dot" style={{ width: 6, height: 6 }} />
-                  <span
-                    className={`badge ${
-                      (log.event || '').includes('fail') || (log.event || '').includes('bounce')
-                        ? 'badge-danger'
-                        : (log.event || '').includes('deliver')
-                        ? 'badge-success'
-                        : (log.event || '').includes('sent')
-                        ? 'badge-info'
-                        : 'badge-accent'
-                    }`}
-                  >
+                  <span className="badge badge-accent font-mono" style={{ fontSize: '0.75rem' }}>
                     {log.event || 'event'}
                   </span>
                   <span className="text-muted font-mono truncate" style={{ fontSize: '0.78rem', maxWidth: 180 }}>
-                    {log.id || 'N/A'}
+                    {log.id || '—'}
                   </span>
                 </div>
 
@@ -681,14 +667,14 @@ export default function DashboardPage() {
                           minute: '2-digit',
                           second: '2-digit',
                         })
-                      : 'N/A'}
+                      : '—'}
                   </div>
                   <Link
                     href="/admin/halomail-logs"
-                    className="text-secondary hover:text-primary flex items-center gap-0.5"
+                    className="text-secondary flex items-center gap-0.5"
                     style={{ fontSize: '0.78rem' }}
                   >
-                    Details <ChevronRight size={12} />
+                    View <ChevronRight size={12} />
                   </Link>
                 </div>
               </div>
