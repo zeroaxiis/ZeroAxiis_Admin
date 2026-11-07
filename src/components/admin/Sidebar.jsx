@@ -10,6 +10,7 @@ import {
   FolderKanban,
   Video,
   MessageSquareQuote,
+  ScrollText,
   User,
   ShieldCheck,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/admin/projects', label: 'Projects', icon: FolderKanban },
   { href: '/admin/creatives', label: 'Creatives', icon: Video },
   { href: '/admin/testimonials', label: 'Testimonials', icon: MessageSquareQuote },
+  { href: '/admin/halomail-logs', label: 'HaloMail Logs', icon: ScrollText },
 ];
 
 export default function Sidebar() {
