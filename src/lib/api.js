@@ -21,7 +21,12 @@ async function request(endpoint, options = {}) {
   try {
     data = await response.json();
   } catch (err) {
-    data = { success: false, message: 'Failed to parse response' };
+    data = {
+      success: false,
+      message: !response.ok
+        ? `Server returned ${response.status} (${response.statusText || 'Not Found'})`
+        : 'Failed to parse response',
+    };
   }
 
   if (!response.ok) {
