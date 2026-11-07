@@ -20,6 +20,8 @@ import {
   Server,
   Database,
   Zap,
+  ScrollText,
+  ChevronRight,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -29,6 +31,7 @@ export default function DashboardPage() {
     projects: [],
     creatives: [],
     testimonials: [],
+    halomailLogs: [],
   });
   const [health, setHealth] = useState(null);
   const [lastChecked, setLastChecked] = useState(null);
@@ -107,6 +110,7 @@ export default function DashboardPage() {
         { key: 'projects', url: '/project' },
         { key: 'creatives', url: '/creative' },
         { key: 'testimonials', url: '/testimonial' },
+        { key: 'halomailLogs', url: '/halomail/events' },
       ];
 
       const results = {};
@@ -430,6 +434,9 @@ export default function DashboardPage() {
             <Link href="/admin/testimonials" className="btn btn-outline btn-sm flex items-center gap-1">
               <Plus size={12} /> Testimonial
             </Link>
+            <Link href="/admin/halomail-logs" className="btn btn-outline btn-sm flex items-center gap-1">
+              <ScrollText size={12} /> Logs
+            </Link>
           </div>
         </div>
 
@@ -595,6 +602,99 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* HaloMail Logs Recent Activity Panel */}
+      <div className="glass-panel p-6 mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-2.5">
+            <ScrollText size={18} style={{ color: 'var(--accent)' }} />
+            <div>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 600 }}>Recent HaloMail Logs</h2>
+              <p className="text-secondary" style={{ fontSize: '0.78rem' }}>
+                Latest inbound webhook events dispatched from HaloMail.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/admin/halomail-logs"
+            className="btn btn-outline btn-sm flex items-center gap-1.5"
+            style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
+          >
+            <span>View All Logs ({data.halomailLogs?.length || 0})</span>
+            <ChevronRight size={14} />
+          </Link>
+        </div>
+
+        {!data.halomailLogs || data.halomailLogs.length === 0 ? (
+          <div
+            className="p-6 text-center rounded-lg"
+            style={{
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+              No HaloMail webhook events recorded yet.
+            </p>
+            <p className="text-secondary" style={{ fontSize: '0.78rem' }}>
+              Webhooks sent to <code style={{ color: 'var(--accent)' }}>/api/v1/halomail/webhook</code> will show up here in real time.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {data.halomailLogs.slice(0, 5).map((log, idx) => (
+              <div
+                key={log.id || idx}
+                className="p-3 rounded-lg flex items-center justify-between"
+                style={{
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="pulse-dot" style={{ width: 6, height: 6 }} />
+                  <span
+                    className={`badge ${
+                      (log.event || '').includes('fail') || (log.event || '').includes('bounce')
+                        ? 'badge-danger'
+                        : (log.event || '').includes('deliver')
+                        ? 'badge-success'
+                        : (log.event || '').includes('sent')
+                        ? 'badge-info'
+                        : 'badge-accent'
+                    }`}
+                  >
+                    {log.event || 'event'}
+                  </span>
+                  <span className="text-muted font-mono truncate" style={{ fontSize: '0.78rem', maxWidth: 180 }}>
+                    {log.id || 'N/A'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="text-muted" style={{ fontSize: '0.78rem' }}>
+                    {log.received_at
+                      ? new Date(log.received_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })
+                      : 'N/A'}
+                  </div>
+                  <Link
+                    href="/admin/halomail-logs"
+                    className="text-secondary hover:text-primary flex items-center gap-0.5"
+                    style={{ fontSize: '0.78rem' }}
+                  >
+                    Details <ChevronRight size={12} />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
